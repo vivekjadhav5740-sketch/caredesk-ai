@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>CareDesk AI</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background: linear-gradient(135deg, #e0f7fa, #e8f5e9);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .container {
+      background: white;
+      padding: 40px;
+      border-radius: 16px;
+      box-shadow: 0 8px 30px rgba(0,0,0,0.1);
+      width: 100%;
+      max-width: 480px;
+    }
+    h1 { color: #00796b; margin-bottom: 6px; font-size: 28px; }
+    p.subtitle { color: #777; margin-bottom: 24px; font-size: 14px; }
+    label { display: block; font-weight: 600; margin-bottom: 4px; color: #444; }
+    input, textarea {
+      width: 100%;
+      padding: 10px 14px;
+      border: 1px solid #ccc;
+      border-radius: 8px;
+      margin-bottom: 16px;
+      font-size: 14px;
+      transition: border 0.2s;
+    }
+    input:focus, textarea:focus {
+      outline: none;
+      border-color: #00796b;
+    }
+    textarea { resize: vertical; min-height: 80px; }
+    button {
+      width: 100%;
+      background: #00796b;
+      color: white;
+      padding: 12px;
+      border: none;
+      border-radius: 8px;
+      font-size: 16px;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    button:hover { background: #00574b; }
+    .result {
+      margin-top: 24px;
+      padding: 16px;
+      border-radius: 10px;
+      display: none;
+    }
+    .result.emergency { background: #ffebee; border-left: 5px solid #e53935; }
+    .result.mental { background: #f3e5f5; border-left: 5px solid #8e24aa; }
+    .result.general { background: #e8f5e9; border-left: 5px solid #43a047; }
+    .result h3 { margin-bottom: 8px; font-size: 18px; }
+    .result p { font-size: 14px; color: #555; margin-bottom: 4px; }
+    .ward-badge {
+      display: inline-block;
+      padding: 4px 12px;
+      border-radius: 20px;
+      font-weight: bold;
+      font-size: 15px;
+      margin-top: 8px;
+    }
+    .emergency .ward-badge { background: #e53935; color: white; }
+    .mental .ward-badge { background: #8e24aa; color: white; }
+    .general .ward-badge { background: #43a047; color: white; }
+    .loader { text-align: center; color: #888; margin-top: 16px; display: none; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🏥 CareDesk AI</h1>
+    <p class="subtitle">AI-powered hospital receptionist</p>
+
+    <label for="name">Patient Name</label>
+    <input type="text" id="name" placeholder="e.g. Rahul Sharma" />
+
+    <label for="age">Age</label>
+    <input type="number" id="age" placeholder="e.g. 32" />
+
+    <label for="query">Describe your problem</label>
+    <textarea id="query" placeholder="e.g. I have severe chest pain since morning..."></textarea>
+
+    <button onclick="submitPatient()">🔍 Find My Ward</button>
+
+    <div class="loader" id="loader">Processing... please wait ⏳</div>
+
+    <div class="result" id="result">
+      <h3>✅ Registration Complete</h3>
+      <p><strong>Name:</strong> <span id="res-name"></span></p>
+      <p><strong>Age:</strong> <span id="res-age"></span></p>
+      <p><strong>Complaint:</strong> <span id="res-query"></span></p>
+      <p>You have been assigned to:</p>
+      <div class="ward-badge" id="res-ward"></div>
+    </div>
+  </div>
+
+  <script>
+    async function submitPatient() {
+      const name = document.getElementById('name').value.trim();
+      const age = parseInt(document.getElementById('age').value);
+      const query = document.getElementById('query').value.trim();
+
+      if (!name || !age || !query) {
+        alert('Please fill in all fields!');
+        return;
+      }
+
+      document.getElementById('loader').style.display = 'block';
+      document.getElementById('result').style.display = 'none';
+
+      try {
+        const response = await fetch('http://127.0.0.1:8000/process_patient', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name, age, query })
+        });
+
+        const data = await response.json();
+        document.getElementById('loader').style.display = 'none';
+
+        const resultDiv = document.getElementById('result');
+        resultDiv.className = 'result';
+
+        if (data.ward.includes('Emergency')) resultDiv.classList.add('emergency');
+        else if (data.ward.includes('Mental')) resultDiv.classList.add('mental');
+        else resultDiv.classList.add('general');
+
+        document.getElementById('res-name').textContent = data.patient_name;
+        document.getElementById('res-age').textContent = data.patient_age;
+        document.getElementById('res-query').textContent = data.patient_query;
+        document.getElementById('res-ward').textContent = data.ward;
+
+        resultDiv.style.display = 'block';
+      } catch (err) {
+        document.getElementById('loader').style.display = 'none';
+        alert('Error: Make sure the backend server is running!');
+      }
+    }
+  </script>
+</body>
+</html>
